@@ -1,11 +1,14 @@
+#ifndef RB_TREE_PUBLIC_METHODS_H
+#define RB_TREE_PUBLIC_METHODS_H 1
+
+#include <stdexcept>
 #include <iostream>
 #include <cassert>
-#include "rbtree.h"
 #include <stack>
 
-using namespace std;
+#include "rbtree.h"
 
-//#include "rbtree.h"
+using namespace std;
 
 RBTree::RBTree() {
     root = nullptr;
@@ -28,23 +31,19 @@ RBTree::~RBTree() {
 
 void RBTree::show() {
     _show(root, 0);
-    std::cout << '\n' << '\n' << '\n' << std::endl;
+    std::cout << "\n\n\n" << std::endl;
 }
 
 void RBTree::put(const int &key) {
-    if (contains(key)) {
+    if (contains(key))
         return;
-    }
     Node *parent = nullptr;
     Node *nd = new Node(key);
-    Node *&parents_ptr = find_pos_to_default_put(key, parent);
-    parents_ptr = nd;
+    Node *&insertion_place = find_pos_to_default_put(key, parent);
+    insertion_place = nd;
     nd->parent = parent;
-    if (nd == root) {
-        nd->color = black;
-        return;
-    }
-    checking_father(nd);
+
+    fixup_after_insertion(nd);
 }
 
 
@@ -73,3 +72,5 @@ int RBTree::max() {
         n = n->right;
     return n->key;
 }
+
+#endif // RB_TREE_PUBLIC_METHODS_H

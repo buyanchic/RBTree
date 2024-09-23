@@ -1,16 +1,20 @@
-//#include "rbtree.h"
+#ifndef RB_TREE_PRIVATE_METHODS_H
+#define RB_TREE_PRIVATE_METHODS_H 1
+
+#include <stdexcept>
+
+#include "rbtree.h"
 
 void RBTree::_show(Node *p, int level) {
-    if (p) {
-        _show(p->right, level + 1);
-        for (int i = 0; i < level; i++) {
-            std::cout << "\t";
-        }
-        p->color == black ? (std::cout << p->key) : (std::cout << "\033[31m" << p->key << "\033[0m");
-        std::cout << "\n";
-        _show(p->left, level + 1);
-    }
+    if (!p) return;
+    _show(p->right, level + 1);
+    for (int i = 0; i < level; i++)
+        std::cout << "\t";
+    p->color == black ? (std::cout << p->key) : (std::cout << "\033[31m" << p->key << "\033[0m");
+    std::cout << "\n";
+    _show(p->left, level + 1);
 }
+
 Node *RBTree::search(const int &key) {
     if (!root)
         return nullptr;
@@ -28,46 +32,6 @@ Node *RBTree::search(const int &key) {
                 n = n->right;
             else
                 return nullptr;
-        }
-    }
-}
-
-void RBTree::checking_father(Node *nd) {
-    if (!nd->parent || nd->parent->color == black) {
-        return;
-    } else {
-        check_uncle(nd, nd->parent);
-    }
-}
-
-void RBTree::check_which_uncle(Node *nd, Node *uncle) {
-    Node *ex_grandpa = nd->parent->parent;
-    if (is_left(nd->parent)) {
-        (ex_grandpa->color == red) ? (ex_grandpa->color = black) : (ex_grandpa->color = red);
-        if (is_right(nd))
-            left_rotation(nd->parent, nd);
-        right_rotation(ex_grandpa, ex_grandpa->left);
-        (ex_grandpa->parent->color == red) ? (ex_grandpa->parent->color = black) : (ex_grandpa->parent->color = red);
-    } else {
-        (ex_grandpa->color == red) ? (ex_grandpa->color = black) : (ex_grandpa->color = red);
-        if (is_left(nd))
-                right_rotation(nd->parent, nd);
-        left_rotation(ex_grandpa, ex_grandpa->right);
-        (ex_grandpa->parent->color == red) ? (ex_grandpa->parent->color = black) : (ex_grandpa->parent->color = red);
-    }
-}
-
-
-void RBTree::check_uncle(Node *nd, Node *parent) {
-    Node *uncle = ptr_to_brother(nd->parent);
-    if (!uncle || (uncle->color == black)) {
-        check_which_uncle(nd, uncle);
-    } else {
-        parent->color = black,
-        uncle->color = black;
-        if (uncle->parent != root) {
-            uncle->parent->color = red;
-            checking_father(nd->parent->parent);
         }
     }
 }
@@ -96,7 +60,7 @@ Node *&RBTree::find_pos_to_default_put(const int &key, Node *&parent) {
         }
 }
 
-Node *RBTree::ptr_to_brother(Node *nd) {
+Node *RBTree::get_brother(Node *nd) {
     if (!nd->parent)
         return nullptr;
     if (nd == nd->parent->left)
@@ -104,7 +68,7 @@ Node *RBTree::ptr_to_brother(Node *nd) {
     return nd->parent->left;
 }
 
-bool RBTree::is_left(Node *&nd) {
+bool RBTree::is_left(Node *nd) {
     if (nd == nd->parent->left)
         return true;
     return false;
@@ -155,9 +119,9 @@ void RBTree::right_rotation(Node *top, Node *bottom) {
 }
 
 
-Node *RBTree::get_nearest_neighbour(Node *node) {
+Node *RBTree::get_node_with_next_key(Node *node) {
     if (!node->right)
-        std::cout << "Нет ближайшего соседа!" << std::endl;
+        throw std::runtime_error("нет узла со следующим значением!");
     Node *nn = node->right;
     if (!nn->left)
         return nn;
@@ -166,107 +130,196 @@ Node *RBTree::get_nearest_neighbour(Node *node) {
     return nn;
 }
 
-bool RBTree::red_childs(Node *nd) {
-    if (nd->left && nd->left->color == red || nd->right && nd->right->color == red)
+bool RBTree::not_red_sons(Node *nd) {
+    if (nd->left && nd->right)
+        if (nd->right->color == black && nd->left->color == black)
+            return true;
+    if (nd->left && !nd->right)
+        if (nd->left->color == black)
+            return true;
+    if (nd->right && !nd->left)
+        if (nd->right->color == black)
+            return true;
+    if (!nd->left && !nd->right)
         return true;
     return false;
 }
 
+void RBTree::fixup_after_deletion(Node *nd) {
+    if (nd->parent == nullptr)
+        return;
+    Node *bro = get_brother(nd);
+    if (bro && bro->color == red) {
+        fixup_brother_red(nd, bro);
+        return;
+    }
+    if (!bro || (bro && bro->color == black && not_red_sons(bro))) {
+        fixup_brother_and_sons_black(nd, bro);
+        return;
+    }
+    if (check_brother_black_internal_son_red(bro)) {
+        fixup_brother_black_internal_son_red(nd, bro);
+        return;
+    }
+    if (check_brother_black_external_son_red(bro)) {
+        fixup_external_son_red(nd, bro);
+        return;
+    } else
+        throw "error in fixup_after_deletion";
+}
 
-void RBTree::repaint(Node *tb) {
-    if (tb->parent== nullptr)
-        return;
-    Node *br = ptr_to_brother(tb);
-    if (br && br->color == red) {
-        if (is_left(tb))
-            left_rotation(tb->parent, br);
-        else
-            right_rotation(tb->parent, br);
-        tb->parent->parent->color = black;
-        tb->parent->color = red;
-        repaint(tb);
-        return;
-    }
-    if (!br || (br && br->color == black && !red_childs(br))) {
-        if (br)
-            br->color = red;
-        if (tb->parent->color == red) {
-            tb->parent->color = black;
-            return;
-        } else {
-            repaint(tb->parent);
-            return;
-        }
-    }
-    if (case4_in_repaint(br) ) {
-        if (is_right(br)) {
-            br->color = red;
-            right_rotation(br, br->left);
-            br->parent->color = black;
-            repaint(tb);
-        }
-        else {
-            right_rotation(br->parent, br);
-        }
-        return;
-    }
-    if ((!br || br->color == black) && br->right->color == red) {
-        left_rotation(br->parent, br);
-        tb->parent->color == black ? br->color = black : br->color = red;
+void RBTree::fixup_brother_red(Node *tb, Node *br) {
+    if (is_left(tb))
+        left_rotation(tb->parent, br);
+    else
+        right_rotation(tb->parent, br);
+    tb->parent->parent->color = black;
+    tb->parent->color = red;
+    fixup_after_deletion(tb);
+}
+
+void RBTree::fixup_brother_and_sons_black(Node *tb, Node *br) {
+    if (br)
+        br->color = red;
+    if (tb->parent->color == red) {
         tb->parent->color = black;
-        br->right->color = black;
+        return;
+    } else {
+        fixup_after_deletion(tb->parent);
         return;
     }
 }
 
-bool RBTree::case4_in_repaint(Node *br) {
-    if (!br || !br->left)
-        return false;
-    if ((br->color == black && br->left->color == red) &&
-    (!br->right || br->right->color == black))
+void RBTree::fixup_brother_black_internal_son_red(Node *tb, Node *br) {
+    br->color = red;
+    if (is_right(br))
+        right_rotation(br, br->left);
+    else
+        left_rotation(br, br->right);
+    br->parent->color = black;
+    fixup_after_deletion(tb);
+}
+
+void RBTree::fixup_external_son_red(Node *tb, Node *br) {
+    tb->parent->color == black ? br->color = black : br->color = red;
+    tb->parent->color = black;
+    if (is_right(br)) {
+        left_rotation(br->parent, br);
+        br->right->color = black;
+    } else {
+        right_rotation(br->parent, br);
+        br->right->color = black;
+    }
+}
+
+bool RBTree::check_brother_black_internal_son_red(Node *br) {
+    if (br->left)
+        if (br->color == black && is_right(br) && br->left->color == red && (!br->right || br->right->color == black))
+            return true;
+    if (br->right)
+        if ((br->color == black && is_left(br) && br->right->color == red) && (!br->left || br->left->color == black))
+            return true;
+    return false;
+    // throw "error in check_brother_black_internal_son_red";
+}
+
+bool RBTree::check_brother_black_external_son_red(Node *br) {
+    if (br->color == black && is_right(br) && br->right->color == red)
+        return true;
+    if (br->color == black && is_left(br) && br->left->color == red)
         return true;
     return false;
+    // throw "error in check_brother_black_internal_son_red";
 }
 
 void RBTree::_remove(Node *nd) {
-    if (!nd)
-        return;
-    // 2 descendants
-    if (nd->left && nd->right) {
-        Node *nn = get_nearest_neighbour(nd);
-        nd->key = nn->key;
-        _remove(nn);
-        return;
-    }
-    // 0 descendants
-    if (!nd->left && !nd->right) {
-        if (!nd->parent)
-            this->root = nullptr;
-        if (nd->color == red)
-        {
-            if (nd->parent->left == nd)
-                nd->parent->left = nullptr;
-            else
-                nd->parent->right = nullptr;
-        }
-        else {
-            repaint(nd);
-            if (nd->parent && nd->parent->left == nd)
-                nd->parent->left = nullptr;
-            else if (nd->parent && nd->parent->right == nd)
-                nd->parent->right = nullptr;
-        }
-        delete nd;
-        return;
-    }
-    // 1 descendant
+    if (nd->left && nd->right)
+        _remove_2_descendants(nd);
+    if (nd->left || nd->right)
+        _remove_1_descendant(nd);
+    if (!nd->left && !nd->right)
+        _remove_0_descendant(nd);
+    else
+        throw "error in _remove";
+}
+
+void RBTree::_remove_2_descendants(Node *nd) {
+    Node *nn = get_node_with_next_key(nd);
+    nd->key = nn->key;
+}
+
+void RBTree::_remove_1_descendant(Node *nd) {
     Node *son = (nd->left) ? nd->left : nd->right;
     if (nd == this->root) {
         this->root = son;
         son->color = black;
         son->parent = nullptr;
+        delete son;
     } else {
         nd->key = son->key;
-        _remove(son);
     }
 }
+
+void RBTree::_remove_0_descendant(Node *nd) {
+    if (!nd->parent)
+        this->root = nullptr;
+    if (nd->color == red) {
+        if (nd->parent->left == nd)
+            nd->parent->left = nullptr;
+        else
+            nd->parent->right = nullptr;
+    } else {
+        fixup_after_deletion(nd);
+        if (nd->parent && nd->parent->left == nd) {
+            nd->parent->left = nullptr;
+        } else if (nd->parent && nd->parent->right == nd) {
+            nd->parent->right = nullptr;
+        }
+    }
+    delete nd;
+}
+
+void RBTree::fixup_after_insertion(Node *nd) {
+    while (true) {
+        // Узел корень
+        if (nd == root) {
+            nd->color = black;
+            return;
+        }
+        // Батя черный (может быть корнем)
+        if (nd->parent->color == black)
+            return;
+
+        Node *uncle = get_brother(nd->parent);
+        if (!uncle || (uncle->color == black)) {
+            check_side_uncle(nd, uncle);
+        } else {
+            nd->parent->color = black;
+            uncle->color = black;
+            if (uncle->parent != root) {
+                uncle->parent->color = red;
+                nd = nd->parent->parent;
+                continue;
+            }
+        }
+    }
+}
+
+void RBTree::check_side_uncle(Node *nd, Node *uncle) {
+    Node *ex_grandpa = nd->parent->parent;
+    if (is_left(nd->parent)) {
+        (ex_grandpa->color == red) ? (ex_grandpa->color = black) : (ex_grandpa->color = red);
+        if (is_right(nd))
+            left_rotation(nd->parent, nd);
+        right_rotation(ex_grandpa, ex_grandpa->left);
+        (ex_grandpa->parent->color == red) ? (ex_grandpa->parent->color = black) : (ex_grandpa->parent->color = red);
+    } else {
+        (ex_grandpa->color == red) ? (ex_grandpa->color = black) : (ex_grandpa->color = red);
+        if (is_left(nd))
+            right_rotation(nd->parent, nd);
+        left_rotation(ex_grandpa, ex_grandpa->right);
+        (ex_grandpa->parent->color == red) ? (ex_grandpa->parent->color = black) : (ex_grandpa->parent->color = red);
+    }
+}
+
+#endif // RB_TREE_PRIVATE_METHODS_H

@@ -24,7 +24,10 @@ public:
     }
 
     static bool root_is_black(RBTree *t) {
-        return (t->root->color == black);
+        if (t->root->color)
+            if (t->root->color == black)
+               return true;
+        return false;
     }
 
     static bool twice_red(RBTree *t) {
@@ -138,10 +141,9 @@ public:
         return true;
     }
 
-    static bool test_random_remove(RBTree *t) {
-
-        for (int i = 0; i < 10000; i++) {
-            int q = rand() % 10000;
+    static bool test_random_remove(RBTree *t, int count = 100000, int maxKey = 100000) {
+        for (int i = 0; i < count; i++) {
+            int q = rand() % maxKey;
             //std::cout<<"***\n"<<  q <<"\n***\n";
             t->remove(q );
             //t->show();
