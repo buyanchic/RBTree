@@ -2,10 +2,10 @@
 #define RBT_TESTS_H 1
 
 #include <iostream>
-#include <random>
 #include <array>
 #include <stack>
 #include <vector>
+#include <cstdlib>
 
 #include "structure/rbtree.h"
 
@@ -15,18 +15,20 @@ class Tests {
 public:
 
     static RBTree *create_random_tree_layout(int count = 100000, int maxKey = 100000) {
-        RBTree *t = new RBTree();
+        auto *t = new RBTree();
 
         for (int i = 0; i < count; i++) {
-            t->put(rand() % maxKey + 1);
-        };
+            int key = rand() % maxKey + 1;
+            t->put(key);
+//            cout << "***" << key << "***" << endl;
+//            t->show();
+        }
         return t;
     }
 
     static bool root_is_black(RBTree *t) {
-        if (t->root->color)
-            if (t->root->color == black)
-               return true;
+        if (t->root && t->root->color == black)
+            return true;
         return false;
     }
 
@@ -37,13 +39,11 @@ public:
         while (!st.empty()) {
             Node *top = st.top();
             st.pop();
-            if (top->parent)
-                if (top->color == red && top->parent->color == red)
-                    return false;
-            if (top->right) {
+            if (top->parent && top->color == red && top->parent->color == red)
+                return false;
+            if (top->right != t->NIL)
                 st.push(top->right);
-            }
-            if (top->left)
+            if (top->left != t->NIL)
                 st.push(top->left);
         }
         return true;
@@ -64,7 +64,7 @@ public:
             bool bl = (nd->color == black);
             int my_height = top.second + bl;
             // если отсутствуют дети
-            if (!nd->left && !nd->right) {
+            if (nd->left == t->NIL && nd->right == t->NIL) {
                 // попали в лист в первый раз - фиксируем значение
                 if (!isFixed) {
                     isFixed = true;
@@ -76,8 +76,8 @@ public:
                 }
             }
             // добавляем детей (если есть)
-            if (nd->left) st.emplace(nd->left, my_height);
-            if (nd->right) st.emplace(nd->right, my_height);
+            if (nd->left != t->NIL) st.emplace(nd->left, my_height);
+            if (nd->right != t->NIL) st.emplace(nd->right, my_height);
         }
         return true;
     }
@@ -93,11 +93,11 @@ public:
     }
 
     static RBTree *create_basic_tree_layout() {
-        RBTree *t = new RBTree();
+        auto *t = new RBTree();
         int vals[] = {2, 1, 4, 3, 7, 6, 9, 2};
         for (const auto &v: vals) {
             t->put(v);
-        };
+        }
         return t;
     }
 
@@ -144,12 +144,8 @@ public:
     static bool test_random_remove(RBTree *t, int count = 100000, int maxKey = 100000) {
         for (int i = 0; i < count; i++) {
             int q = rand() % maxKey;
-            //std::cout<<"***\n"<<  q <<"\n***\n";
-            t->remove(q );
-            //t->show();
-        };
-//        t->show();
-
+            t->remove(q);
+        }
         delete t;
         return true;
     }

@@ -12,6 +12,8 @@ using namespace std;
 
 RBTree::RBTree() {
     root = nullptr;
+    NIL = new Node(0);
+    NIL->color = black;
 }
 
 RBTree::~RBTree() {
@@ -21,12 +23,13 @@ RBTree::~RBTree() {
     while (!st.empty()) {
         Node *top = st.top();
         st.pop();
-        if (top->right)
+        if (top->right != NIL)
             st.push(top->right);
-        if (top->left)
+        if (top->left != NIL)
             st.push(top->left);
         delete top;
     }
+    delete NIL;
 }
 
 void RBTree::show() {
@@ -38,14 +41,13 @@ void RBTree::put(const int &key) {
     if (contains(key))
         return;
     Node *parent = nullptr;
-    Node *nd = new Node(key);
-    Node *&insertion_place = find_pos_to_default_put(key, parent);
-    insertion_place = nd;
+    Node *&nd = find_pos_to_put(key, parent);
+    nd = new Node(key);
     nd->parent = parent;
-
+    nd->left = NIL;
+    nd->right = NIL;
     fixup_after_insertion(nd);
 }
-
 
 void RBTree::remove(const int &key) {
     Node *nd = search(key);
@@ -60,7 +62,7 @@ bool RBTree::contains(const int &key) {
 int RBTree::min() {
     assert(root);
     Node *n = root;
-    while (n->left)
+    while (n->left != NIL)
         n = n->left;
     return n->key;
 }
@@ -68,7 +70,7 @@ int RBTree::min() {
 int RBTree::max() {
     assert(root);
     Node *n = root;
-    while (n->right)
+    while (n->right != NIL)
         n = n->right;
     return n->key;
 }

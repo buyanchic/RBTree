@@ -1,5 +1,5 @@
-#ifndef _NODE_H
-#define _NODE_H 1
+#ifndef NODE_H
+#define NODE_H 1
 
 class Tests;
 
@@ -27,4 +27,4 @@ public:
     }
 };
 
-#endif // _NODE_H
+#endif // NODE_H
